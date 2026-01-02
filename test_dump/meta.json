@@ -1,0 +1,10 @@
+{
+    "console": "WING Rack",
+    "console_name": "StarryNight",
+    "firmware": "3.1.0",
+    "wing_edit_version": "3.2.1",
+    "ip": "192.168.8.200",
+    "osc_port": 2223,
+    "generated_at": "2026-01-02T01:33:59+00:00",
+    "tool_version": "1.0.0"
+}
