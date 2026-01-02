@@ -22,6 +22,7 @@ The system provides:
 * **Multi-device OSC control** - Simultaneous communication with up to 8 OSC devices
 * **Menu system** - Nested menu organization for unlimited command access
 * **AI-powered management** - Intelligent automation and optimization
+* **AI chat interface** - Conversational mix suggestions and connection guidance
 * **Auto-discovery** - Automatic console detection on local network
 * **MIDI integration** - Full MIDI support for external control
 
@@ -94,9 +95,11 @@ The system **must safely handle**:
 | **Discovery Engine** | OSC tree enumeration and structure mapping |
 | **Snippet Manager** | Save/restore console state snapshots |
 | **CC Manager** | Custom Control button/knob configuration |
+| **MIDI Control Surface Manager** | MIDI controllers as extended CC controls |
 | **Multi-Device Router** | Simultaneous OSC communication (up to 8 devices) |
 | **Menu System** | Nested menu organization for commands |
 | **AI Engine** | Intelligent automation and optimization |
+| **AI Chat Interface** | Conversational mix suggestions and connection guidance |
 | **Auto-Discovery** | Network scanning and console detection |
 | **MIDI Bridge** | MIDI input/output handling |
 | **Version Control** | Git-based versioning, branching, diff, blame, history |
@@ -147,10 +150,16 @@ wing/
 │   ├── knobs/
 │   │   ├── knob_01.json
 │   │   └── ...
-│   └── menus/
-│       ├── main_menu.json
-│       ├── fx_menu.json
-│       └── ...
+│   ├── menus/
+│   │   ├── main_menu.json
+│   │   ├── fx_menu.json
+│   │   └── ...
+│   └── midi/                 # MIDI control surface mappings (version-controlled)
+│       ├── devices.json
+│       ├── mappings.json
+│       └── presets/
+│           ├── live_setup.json
+│           └── ...
 │
 ├── devices/                  # Multi-device OSC configurations (version-controlled)
 │   ├── device_01.json       # WING #2
@@ -167,6 +176,11 @@ wing/
 ├── patches/                  # Fast patch files (version-controlled)
 │   ├── vocal_adjustments.patch
 │   ├── live_changes.patch
+│   └── ...
+│
+├── automations/              # Timeline-based automation (version-controlled)
+│   ├── vocal_fade_in.json
+│   ├── scene_transition.json
 │   └── ...
 │
 └── ai/                       # AI management data (version-controlled)
@@ -642,6 +656,77 @@ php artisan wing:cc:load \
   --button=1 \
   --on-snippet=vocal_on \
   --off-snippet=vocal_off
+
+# AI-driven CC assignment (via chat or direct)
+php artisan wing:ai:cc:assign \
+  --control=1 \
+  --description="channel 10's harshness" \
+  --ip=192.168.8.200
+
+# AI-driven CC assignment with explicit type
+php artisan wing:ai:cc:assign \
+  --control=2 \
+  --description="mute channel 5" \
+  --type=button \
+  --ip=192.168.8.200
+```
+
+#### MIDI Control Surface Management
+```bash
+# Discover MIDI devices
+php artisan wing:midi:discover
+
+# List MIDI devices
+php artisan wing:midi:list
+
+# Assign MIDI control to OSC parameter
+php artisan wing:midi:assign \
+  --device=korg_nanokontrol \
+  --control=fader:1 \
+  --description="channel 1 gain" \
+  --ip=192.168.8.200
+
+# Assign MIDI pad to snippet (button)
+php artisan wing:midi:assign \
+  --device=launchpad_pro \
+  --control=pad:1 \
+  --snippet=vocal_mix \
+  --ip=192.168.8.200
+
+# Assign MIDI knob to parameter
+php artisan wing:midi:assign \
+  --device=korg_nanokontrol \
+  --control=knob:1 \
+  --description="channel 1 harshness" \
+  --ip=192.168.8.200
+
+# Assign MIDI CC to parameter
+php artisan wing:midi:assign \
+  --device=akai_mpk \
+  --control=cc:64 \
+  --description="vocal reverb send" \
+  --ip=192.168.8.200
+
+# Assign MIDI note to snippet trigger
+php artisan wing:midi:assign \
+  --device=akai_mpk \
+  --control=note:36 \
+  --snippet=vocal_mix \
+  --ip=192.168.8.200
+
+# List MIDI control assignments
+php artisan wing:midi:mappings:list
+
+# Remove MIDI control assignment
+php artisan wing:midi:unassign \
+  --device=korg_nanokontrol \
+  --control=fader:1
+
+# Save MIDI control surface configuration
+php artisan wing:midi:save --name=live_setup
+
+# Load MIDI control surface configuration
+php artisan wing:midi:load --name=live_setup
 ```
 
 #### Multi-Device OSC
@@ -805,6 +890,116 @@ php artisan wing:ai:learn --session=recording_01
 php artisan wing:ai:apply --suggestions=ai/optimizations/mix_01.json
 ```
 
+#### AI Chat Interface (Conversational Mix Assistant)
+```bash
+# Start interactive chat session
+php artisan wing:ai:chat --ip=192.168.8.200
+
+# Chat with context (current console state)
+php artisan wing:ai:chat \
+  --ip=192.168.8.200 \
+  --context=current
+
+# Chat with specific conversation
+php artisan wing:ai:chat \
+  --ip=192.168.8.200 \
+  --session=mix_session_01
+
+# Single question (non-interactive)
+php artisan wing:ai:ask \
+  --ip=192.168.8.200 \
+  --question="How do I connect a microphone to channel 1?"
+
+# Execute AI suggestion from chat
+php artisan wing:ai:execute \
+  --ip=192.168.8.200 \
+  --suggestion-id=suggestion_123
+
+# View chat history
+php artisan wing:ai:chat:history --session=mix_session_01
+```
+
+**Chat Capabilities:**
+- **Mix Suggestions** - "Make the vocals louder" → Applies gain adjustments
+- **Connection Guidance** - "Where do I plug in a guitar?" → Explains physical connections
+- **Troubleshooting** - "Why is channel 1 quiet?" → Diagnoses and suggests fixes
+- **Configuration Help** - "How do I set up reverb on vocals?" → Step-by-step guidance
+- **Best Practices** - "What's the best EQ for vocals?" → Professional recommendations
+- **OSC Command Translation** - Converts natural language to OSC commands
+- **AI-Driven CC Assignment** - "Set up user control 1 to dial in channel 10's harshness" → Automatically assigns appropriate CC control (button/fader/rotary) with optimal formula
+
+**Example Chat Session:**
+```
+User: "I need to connect a vocal microphone to channel 1"
+AI: "To connect a vocal microphone to channel 1:
+     1. Plug the XLR cable into INPUT 1 on the back of the console
+     2. Set the input gain to -12dB (I can do this for you)
+     3. Enable phantom power if using a condenser mic
+     
+     Would you like me to configure channel 1 for vocals now?"
+
+User: "Yes, please set it up for vocals"
+AI: "Configuring channel 1 for vocals:
+     ✓ Input gain set to -12dB
+     ✓ High-pass filter enabled at 80Hz
+     ✓ EQ preset applied (vocal presence)
+     ✓ Compression enabled (vocal compressor)
+     
+     Channel 1 is now ready for vocals. You can test by speaking into the mic."
+
+User: "The vocals are too quiet"
+AI: "I'll increase the vocal level. Options:
+     1. Increase channel gain (currently -12dB)
+     2. Increase fader level
+     3. Both
+     
+     I recommend increasing the fader first. Should I proceed?"
+
+User: "Yes, increase the fader"
+AI: "✓ Channel 1 fader increased to +3dB
+     ✓ Main mix fader checked
+     
+     Vocals should now be louder. How does that sound?"
+
+User: "Please set up user control 1 to dial in channel 10's harshness"
+AI: "I'll set up CC knob 1 to control channel 10's harshness.
+     
+     'Harshness' typically refers to high-frequency content (presence/air).
+     I'll map it to the high-frequency EQ band (band 4) gain.
+     
+     Configuration:
+     ✓ CC Knob 1 → /ch/10/eq/band4/gain
+     ✓ Formula: linear:0:1:-12:12 (reduces harshness at 0, adds presence at 1)
+     ✓ Frequency: 8kHz (typical harshness range)
+     ✓ Q: 1.0 (moderate bandwidth)
+     
+     Rotating CC knob 1 will now adjust channel 10's high-frequency presence.
+     Turn left to reduce harshness, right to add presence. Should I apply this?"
+
+User: "Yes, apply it"
+AI: "✓ CC Knob 1 configured for channel 10 harshness control
+     ✓ Current EQ band 4 gain: 0dB
+     ✓ Control range: -12dB to +12dB
+     
+     You can now use CC knob 1 to adjust channel 10's harshness in real-time."
+
+User: "Set up user control 2 as a button to mute channel 5"
+AI: "I'll configure CC button 2 to mute/unmute channel 5.
+     
+     Configuration:
+     ✓ CC Button 2 → /ch/05/mix/on (toggle mode)
+     ✓ ON state: Channel 5 unmuted (value: 1)
+     ✓ OFF state: Channel 5 muted (value: 0)
+     
+     Pressing CC button 2 will toggle channel 5's mute state. Should I apply this?"
+
+User: "Yes"
+AI: "✓ CC Button 2 configured as channel 5 mute toggle
+     ✓ Current state: Channel 5 is unmuted
+     
+     Press CC button 2 to mute/unmute channel 5."
+```
+
 ### 12.2 Command Options
 
 | Command | Option | Description |
@@ -828,6 +1023,23 @@ php artisan wing:ai:apply --suggestions=ai/optimizations/mix_01.json
 | `wing:git:history` | `--file` | History for specific file |
 | `wing:git:history` | `--author` | Filter by author |
 | `wing:git:history` | `--since` | Filter by date |
+| `wing:automation:create` | `--keyframes` | Keyframe file path |
+| `wing:automation:create` | `--duration` | Duration in milliseconds |
+| `wing:automation:create` | `--easing` | Easing function (linear, ease-in, etc.) |
+| `wing:automation:play` | `--ip` | Console IP address |
+| `wing:automation:play` | `--loop` | Loop automation |
+| `wing:automation:play` | `--iterations` | Number of iterations |
+| `wing:automation:from-patch` | `--duration` | Transition duration |
+| `wing:automation:from-patch` | `--easing` | Easing function |
+| `wing:ai:chat` | `--ip` | Console IP address |
+| `wing:ai:chat` | `--context` | Include current console state |
+| `wing:ai:chat` | `--session` | Chat session ID |
+| `wing:ai:ask` | `--question` | Single question (non-interactive) |
+| `wing:ai:execute` | `--suggestion-id` | Execute AI suggestion |
+| `wing:ai:cc:assign` | `--control` | CC control ID (1-8) |
+| `wing:ai:cc:assign` | `--description` | Natural language description |
+| `wing:ai:cc:assign` | `--type` | Force control type (button/fader/knob) |
+| `wing:ai:cc:assign` | `--ip` | Console IP address |
 
 ---
 
@@ -1044,20 +1256,233 @@ Menus can:
 * Usage pattern learning
 * Predictive parameter adjustment
 
+**AI Chat Interface:**
+* Conversational mix suggestions
+* Physical connection guidance
+* Troubleshooting assistance
+* Configuration help
+* Best practices recommendations
+* Natural language to OSC translation
+* AI-driven CC assignment (intelligent control mapping)
+
+**AI Knowledge Base:**
+* Physical console connections (inputs, outputs, inserts)
+* Signal routing and patching
+* Gain staging and levels
+* EQ and frequency ranges
+* Compression and dynamics
+* Effects and processing
+* Best practices for different instruments
+* Troubleshooting common issues
+* OSC command mapping
+* Parameter semantic mapping (e.g., "harshness" → high-frequency EQ)
+* CC control type selection (button vs fader vs rotary)
+* Formula optimization for different parameter types
+
 **AI Data Storage:**
 * Learning data in `ai/learning/`
 * Optimization profiles in `ai/profiles/`
 * Suggestions in `ai/optimizations/`
+* Chat history in `ai/chat/`
+* Knowledge base in `ai/knowledge/`
 
-### 15.7 MIDI Integration
+**Chat Session Format:**
+```json
+{
+  "session_id": "mix_session_01",
+  "created_at": "2024-01-15T10:30:00Z",
+  "console_ip": "192.168.8.200",
+  "messages": [
+    {
+      "role": "user",
+      "content": "I need to connect a vocal microphone to channel 1",
+      "timestamp": "2024-01-15T10:30:15Z"
+    },
+    {
+      "role": "assistant",
+      "content": "To connect a vocal microphone to channel 1:\n1. Plug the XLR cable into INPUT 1 on the back of the console\n2. Set the input gain to -12dB (I can do this for you)\n3. Enable phantom power if using a condenser mic\n\nWould you like me to configure channel 1 for vocals now?",
+      "timestamp": "2024-01-15T10:30:16Z",
+      "suggestions": [
+        {
+          "id": "suggestion_123",
+          "action": "configure_channel",
+          "channel": 1,
+          "preset": "vocal",
+          "osc_commands": [
+            {"path": "/ch/01/preamp/gain", "value": -12.0},
+            {"path": "/ch/01/preamp/hpf", "value": 80.0}
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**AI-Driven CC Assignment Process:**
+1. **Natural Language Understanding** - Parse user request (e.g., "channel 10's harshness")
+2. **Semantic Mapping** - Map descriptive terms to OSC parameters:
+   - "harshness" → high-frequency EQ gain
+   - "warmth" → low/mid-frequency EQ gain
+   - "punch" → compression threshold/ratio
+   - "space" → reverb send level
+   - "clarity" → mid-frequency EQ gain
+3. **Control Type Selection** - Determine best CC control type:
+   - **Button** - For on/off, toggle, or momentary actions (mute, solo, FX on/off)
+   - **Fader** - For level controls (gain, send levels, mix levels)
+   - **Rotary (Knob)** - For continuous parameter adjustment (EQ, compression, effects)
+   - **MIDI Control Surface** - Can assign to MIDI pads, faders, knobs, CC, or notes
+4. **Formula Optimization** - Select appropriate formula based on parameter:
+   - EQ gain: `linear:0:1:-12:12` (typical EQ range)
+   - Compression: `exponential:0:1:0:20` (ratio/threshold)
+   - Level: `linear:0:1:-60:0` (gain range)
+5. **Multi-Parameter Support** - If description suggests multiple parameters, assign to multiple targets with coordinated formulas
+
+**Parameter Semantic Mapping Examples:**
+| Description | Parameter | OSC Path | Formula | Control Type |
+|------------|-----------|----------|---------|--------------|
+| "harshness" | High-frequency EQ | `/ch/XX/eq/band4/gain` | `linear:0:1:-12:12` | Rotary |
+| "warmth" | Low/mid EQ | `/ch/XX/eq/band1/gain` | `linear:0:1:-12:12` | Rotary |
+| "punch" | Compression | `/ch/XX/comp/threshold` | `exponential:0:1:0:20` | Rotary |
+| "space" | Reverb send | `/ch/XX/mix/01/level` | `linear:0:1:-60:0` | Fader |
+| "clarity" | Mid EQ | `/ch/XX/eq/band2/gain` | `linear:0:1:-12:12` | Rotary |
+| "mute" | Channel mute | `/ch/XX/mix/on` | `toggle:0:1` | Button / MIDI Pad |
+| "solo" | Channel solo | `/ch/XX/mix/solo` | `toggle:0:1` | Button / MIDI Pad |
+| "gain" | Channel gain | `/ch/XX/preamp/gain` | `linear:0:127:-60:0` | Fader / MIDI Fader |
+| "level" | Channel level | `/ch/XX/mix/level` | `linear:0:127:-60:0` | Fader / MIDI Fader |
+| "reverb" | Reverb send | `/ch/XX/mix/01/level` | `linear:0:127:-60:0` | Fader / MIDI Knob |
+
+### 15.7 MIDI Integration & Control Surfaces
 
 **MIDI Support:**
 * MIDI CC mapping to OSC parameters
 * MIDI note triggers for snippets
 * MIDI clock sync
 * External MIDI device control
+* **MIDI control surfaces as extended CC controls** - Use MIDI controllers (keyboards, pads, knobs, faders) as additional user-defined custom controls
 
-**MIDI Configuration:**
+**MIDI Control Surface Configuration:**
+```json
+{
+  "midi_devices": [
+    {
+      "id": "launchpad_pro",
+      "name": "Novation Launchpad Pro",
+      "input_port": "Launchpad Pro MIDI 1",
+      "output_port": "Launchpad Pro MIDI 1",
+      "enabled": true,
+      "type": "pad_controller"
+    },
+    {
+      "id": "korg_nanokontrol",
+      "name": "Korg nanoKONTROL2",
+      "input_port": "nanoKONTROL2",
+      "output_port": "nanoKONTROL2",
+      "enabled": true,
+      "type": "fader_controller"
+    },
+    {
+      "id": "akai_mpk",
+      "name": "AKAI MPK Mini",
+      "input_port": "MPK Mini",
+      "output_port": "MPK Mini",
+      "enabled": true,
+      "type": "keyboard_controller"
+    }
+  ],
+  "control_surface_mappings": [
+    {
+      "device": "launchpad_pro",
+      "control_type": "pad",
+      "pad_number": 1,
+      "description": "channel 1 mute toggle",
+      "osc_path": "/ch/01/mix/on",
+      "formula": "toggle:0:1",
+      "mode": "toggle"
+    },
+    {
+      "device": "korg_nanokontrol",
+      "control_type": "fader",
+      "fader_number": 1,
+      "description": "channel 1 gain",
+      "osc_path": "/ch/01/preamp/gain",
+      "formula": "linear:0:127:-60:0"
+    },
+    {
+      "device": "korg_nanokontrol",
+      "control_type": "knob",
+      "knob_number": 1,
+      "description": "channel 1 harshness",
+      "osc_path": "/ch/01/eq/band4/gain",
+      "formula": "linear:0:127:-12:12"
+    },
+    {
+      "device": "akai_mpk",
+      "control_type": "cc",
+      "cc_number": 64,
+      "description": "vocal reverb send",
+      "osc_path": "/ch/01/mix/01/level",
+      "formula": "linear:0:127:-60:0"
+    },
+    {
+      "device": "akai_mpk",
+      "control_type": "note",
+      "note_number": 36,
+      "description": "load vocal mix snippet",
+      "action": "snippet:load",
+      "snippet": "vocal_mix"
+    }
+  ]
+}
+```
+
+**MIDI Control Surface Types:**
+* **Pad Controllers** (Launchpad, Maschine, etc.) - Buttons for toggles, snippets, scene changes
+* **Fader Controllers** (nanoKONTROL, FaderPort, etc.) - Faders for level control
+* **Knob Controllers** (nanoKONTROL, MIDI keyboards with knobs) - Rotary encoders for parameter adjustment
+* **Keyboard Controllers** - MIDI CC knobs, notes for triggers
+* **Hybrid Controllers** - Combination of pads, faders, knobs
+
+**AI-Driven MIDI Control Surface Assignment:**
+```bash
+# Assign MIDI control via AI chat
+User: "Map the first fader on my Korg nanoKONTROL to control channel 1's gain"
+AI: "I'll map nanoKONTROL fader 1 to channel 1 gain.
+     
+     Configuration:
+     ✓ Device: Korg nanoKONTROL2
+     ✓ Control: Fader 1
+     ✓ Target: /ch/01/preamp/gain
+     ✓ Formula: linear:0:127:-60:0
+     
+     Moving fader 1 will now control channel 1's gain. Should I apply this?"
+
+# Direct CLI assignment
+php artisan wing:midi:assign \
+  --device=korg_nanokontrol \
+  --control=fader:1 \
+  --description="channel 1 gain" \
+  --ip=192.168.8.200
+
+# Assign MIDI pad to snippet
+php artisan wing:midi:assign \
+  --device=launchpad_pro \
+  --control=pad:1 \
+  --snippet=vocal_mix \
+  --ip=192.168.8.200
+```
+
+**MIDI Control Surface Features:**
+* **Multiple Devices** - Support for multiple MIDI controllers simultaneously
+* **Device Discovery** - Auto-detect connected MIDI devices
+* **Control Type Detection** - Automatically identify pads, faders, knobs
+* **AI Integration** - Use AI chat to assign MIDI controls
+* **Formula Support** - Same formula system as built-in CC controls
+* **Multi-Parameter** - Single MIDI control can affect multiple OSC parameters
+* **Feedback** - Optional MIDI feedback (LEDs, motorized faders)
+* **Presets** - Save/load MIDI control surface configurations
+
+**MIDI Configuration (Legacy Format - Still Supported):**
 ```json
 {
   "midi_input": "device_name",
@@ -1233,6 +1658,10 @@ Single button/knob can control multiple parameters with different formulas:
 * ✔ Multi-parameter control
 * ✔ Menu organization
 * ✔ Text-editable definition files
+* ✔ AI-driven CC assignment (natural language)
+* ✔ Semantic parameter mapping
+* ✔ Automatic control type selection
+* ✔ Formula optimization
 
 ### 20.4 Multi-Device OSC
 
@@ -1251,12 +1680,29 @@ Single button/knob can control multiple parameters with different formulas:
 * ✔ Mix optimization profiles
 * ✔ Usage pattern learning
 * ✔ Intelligent parameter suggestions
+* ✔ AI chat interface (conversational)
+* ✔ Physical connection guidance
+* ✔ Troubleshooting assistance
+* ✔ Natural language to OSC translation
+* ✔ Chat session history
+* ✔ AI knowledge base
+* ✔ AI-driven CC assignment
+* ✔ Semantic parameter mapping (harshness, warmth, punch, etc.)
+* ✔ Automatic control type selection (button/fader/rotary)
+* ✔ Formula optimization for parameter types
 
 ### 20.7 MIDI Support
 
 * ✔ MIDI CC to OSC mapping
 * ✔ MIDI note triggers
 * ✔ External device control
+* ✔ MIDI control surfaces as extended CC controls
+* ✔ Multiple MIDI device support
+* ✔ MIDI device discovery
+* ✔ Control type detection (pad/fader/knob/cc/note)
+* ✔ AI-driven MIDI control assignment
+* ✔ MIDI control surface presets
+* ✔ MIDI feedback support (LEDs, motorized faders)
 
 ### 20.8 Version Control
 
@@ -1275,6 +1721,12 @@ Single button/knob can control multiple parameters with different formulas:
 * ✔ Patch preview (dry-run)
 * ✔ Patch reversal (undo)
 * ✔ Direct OSC application (no dump/restore)
+* ✔ Timeline-based automation (keyframes)
+* ✔ CSS-style easing functions
+* ✔ Real-time automation execution
+* ✔ Loop and iteration control
+* ✔ Patch-to-automation conversion
+* ✔ Automation-to-patch conversion
 
 ---
 
@@ -1288,11 +1740,13 @@ Single button/knob can control multiple parameters with different formulas:
 | **Multi-Device** | ✅ (8 devices) | ✅ (8 devices) |
 | **Menus** | ✅ | ✅ Enhanced with command execution |
 | **Auto-Discovery** | ✅ | ✅ |
-| **MIDI** | ✅ | ✅ |
+| **MIDI** | ✅ | ✅ Enhanced with control surfaces as extended CC |
 | **AI Management** | ❌ | ✅ **Unique feature** |
+| **AI Chat Interface** | ❌ | ✅ **Unique feature** (conversational assistant) |
 | **Full State Export** | ❌ | ✅ **Unique feature** |
 | **Diff/Version Control** | ❌ | ✅ **Unique feature** |
 | **Fast Patch System** | ❌ | ✅ **Unique feature** (selective updates) |
+| **Timeline Automation** | ❌ | ✅ **Unique feature** (CSS-style keyframes) |
 | **Open Source** | ❌ (€10) | ✅ **Free and open** |
 | **Text Definitions** | ✅ | ✅ Enhanced JSON format |
 
@@ -1336,6 +1790,10 @@ This is **not just a crawler** — it is a **complete console management system*
 - [ ] Patch creation from diffs
 - [ ] Selective patch application
 - [ ] Patch preview and reversal
+- [ ] Timeline-based automation (keyframes)
+- [ ] CSS-style easing functions
+- [ ] Real-time automation execution
+- [ ] Patch-to-automation conversion
 
 ### Phase 3: Snippets
 - [ ] Snippet save/restore
@@ -1349,6 +1807,9 @@ This is **not just a crawler** — it is a **complete console management system*
 - [ ] Menu system
 - [ ] Definition file format
 - [ ] Integration with version control
+- [ ] AI-driven CC assignment
+- [ ] Semantic parameter mapping
+- [ ] Automatic control type selection
 
 ### Phase 5: Multi-Device
 - [ ] Multi-device OSC router
@@ -1365,11 +1826,23 @@ This is **not just a crawler** — it is a **complete console management system*
 - [ ] Mix optimization
 - [ ] Usage learning
 - [ ] Intelligent suggestions
+- [ ] AI chat interface
+- [ ] Natural language processing
+- [ ] Physical connection knowledge base
+- [ ] Conversational mix suggestions
+- [ ] Chat session management
+- [ ] Formula optimization for CC assignment
 
 ### Phase 8: MIDI
 - [ ] MIDI input/output
 - [ ] CC mapping
 - [ ] Clock sync
+- [ ] MIDI control surfaces as extended CC
+- [ ] MIDI device discovery
+- [ ] Control type detection
+- [ ] AI-driven MIDI control assignment
+- [ ] MIDI control surface presets
+- [ ] MIDI feedback support
 
 ### Phase 9: Polish
 - [ ] Documentation

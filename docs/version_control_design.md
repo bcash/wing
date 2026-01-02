@@ -31,6 +31,7 @@ wing/
 ├── devices/               # Version-controlled
 ├── definitions/           # Version-controlled
 ├── patches/               # Fast patch files (version-controlled)
+├── automations/           # Timeline-based automation (version-controlled)
 └── ai/                    # Version-controlled (optional)
 ```
 
@@ -542,7 +543,163 @@ class PatchChange
 * Cache OSC client connections
 * Skip unchanged values (compare before sending)
 
-### 4.4 .gitignore Configuration
+### 4.5 Timeline-Based Automation (CSS Animation-Style)
+
+**Automation Format:**
+```json
+{
+  "version": "1.0",
+  "name": "vocal_fade_in",
+  "description": "Smooth vocal channel fade-in",
+  "duration": 5000,
+  "unit": "ms",
+  "loop": false,
+  "iterations": 1,
+  "timeline": [
+    {
+      "timestamp": 0,
+      "easing": "ease-in",
+      "changes": [
+        {
+          "osc_path": "/ch/01/mix/level",
+          "value": 0.0,
+          "osc_types": "f"
+        }
+      ]
+    },
+    {
+      "timestamp": 5000,
+      "easing": "ease-out",
+      "changes": [
+        {
+          "osc_path": "/ch/01/mix/level",
+          "value": 1.0,
+          "osc_types": "f"
+        }
+      ]
+    }
+  ],
+  "keyframes": {
+    "0%": {
+      "/ch/01/mix/level": 0.0,
+      "/ch/01/preamp/gain": -60.0
+    },
+    "50%": {
+      "/ch/01/mix/level": 0.5,
+      "/ch/01/preamp/gain": -30.0
+    },
+    "100%": {
+      "/ch/01/mix/level": 1.0,
+      "/ch/01/preamp/gain": -12.0
+    }
+  },
+  "easing": "ease-in-out",
+  "metadata": {
+    "created_at": "2024-01-15T10:30:00Z",
+    "author": "user@example.com",
+    "tags": ["vocals", "fade", "live"]
+  }
+}
+```
+
+**Keyframe Format (CSS-style):**
+```json
+{
+  "keyframes": {
+    "0%": {
+      "/ch/01/mix/level": 0.0,
+      "/ch/01/preamp/gain": -60.0
+    },
+    "25%": {
+      "/ch/01/mix/level": 0.25
+    },
+    "50%": {
+      "/ch/01/mix/level": 0.5,
+      "/ch/01/preamp/gain": -30.0
+    },
+    "75%": {
+      "/ch/01/mix/level": 0.75
+    },
+    "100%": {
+      "/ch/01/mix/level": 1.0,
+      "/ch/01/preamp/gain": -12.0
+    }
+  },
+  "duration": 10000,
+  "easing": "ease-in-out"
+}
+```
+
+**Easing Functions (CSS-compatible):**
+* `linear` - Constant speed
+* `ease` - Slow start, fast middle, slow end
+* `ease-in` - Slow start
+* `ease-out` - Slow end
+* `ease-in-out` - Slow start and end
+* `cubic-bezier(x1, y1, x2, y2)` - Custom curve
+* `steps(n)` - Step function
+* `steps(n, start|end)` - Step with direction
+
+**Automation Manager Service:**
+```php
+class AutomationManager
+{
+    /**
+     * Create automation from keyframes
+     */
+    public function create(
+        string $name,
+        array $keyframes,
+        int $duration,
+        string $easing = 'linear'
+    ): Automation;
+
+    /**
+     * Execute automation on console (real-time)
+     */
+    public function execute(
+        Automation $automation,
+        string $ip,
+        bool $loop = false,
+        int $iterations = 1
+    ): AutomationResult;
+
+    /**
+     * Convert automation to patch (snapshot at end)
+     */
+    public function toPatch(Automation $automation): Patch;
+
+    /**
+     * Create automation from patch (interpolate between states)
+     */
+    public function fromPatch(
+        Patch $patch,
+        int $duration,
+        string $easing = 'ease-in-out'
+    ): Automation;
+
+    /**
+     * Preview automation (dry-run, show timeline)
+     */
+    public function preview(Automation $automation): array;
+}
+```
+
+**Automation Execution:**
+1. Parse keyframes and calculate intermediate values
+2. Apply easing function to interpolate between keyframes
+3. Send OSC messages at calculated timestamps
+4. Support real-time execution with precise timing
+5. Support loop and iteration control
+6. Track progress and allow cancellation
+
+**Integration with Patches:**
+* Convert patch to automation (smooth transition)
+* Convert automation to patch (end state snapshot)
+* Combine multiple automations in sequence
+* Parallel automations for different parameters
+
+### 4.6 .gitignore Configuration
 
 ```gitignore
 # Temporary files
@@ -602,7 +759,71 @@ php artisan wing:patch:list
 php artisan wing:patch:view patches/vocal_adjustments.patch
 ```
 
-### 5.2 Version Control Commands
+### 5.2 Automation Commands (Timeline-Based)
+
+```bash
+# Create automation from keyframes
+php artisan wing:automation:create vocal_fade_in \
+  --keyframes=automations/vocal_fade.json \
+  --duration=5000 \
+  --easing=ease-in-out
+
+# Create automation from patch (smooth transition)
+php artisan wing:automation:from-patch patches/vocal_adjustments.patch \
+  --duration=10000 \
+  --easing=ease-in-out \
+  --out=automations/vocal_transition.json
+
+# Execute automation on console (real-time)
+php artisan wing:automation:play vocal_fade_in \
+  --ip=192.168.8.200
+
+# Execute with options
+php artisan wing:automation:play vocal_fade_in \
+  --ip=192.168.8.200 \
+  --loop \
+  --iterations=3
+
+# Preview automation (show timeline)
+php artisan wing:automation:preview vocal_fade_in
+
+# Convert automation to patch (end state)
+php artisan wing:automation:to-patch vocal_fade_in \
+  --out=patches/vocal_fade_end.patch
+
+# List automations
+php artisan wing:automation:list
+
+# View automation details
+php artisan wing:automation:view vocal_fade_in
+
+# Stop running automation
+php artisan wing:automation:stop --ip=192.168.8.200
+```
+
+**Keyframe File Format:**
+```json
+{
+  "keyframes": {
+    "0%": {
+      "/ch/01/mix/level": 0.0,
+      "/ch/01/preamp/gain": -60.0
+    },
+    "50%": {
+      "/ch/01/mix/level": 0.5,
+      "/ch/01/preamp/gain": -30.0
+    },
+    "100%": {
+      "/ch/01/mix/level": 1.0,
+      "/ch/01/preamp/gain": -12.0
+    }
+  },
+  "duration": 10000,
+  "easing": "ease-in-out"
+}
+```
+
+### 5.3 Version Control Commands
 
 ```bash
 # Initialize Git repository
@@ -747,7 +968,17 @@ php artisan wing:git:pull
 - [ ] Patch reversal
 - [ ] Performance optimizations (batching, bulk ops)
 
-### Phase 5: Advanced Features
+### Phase 5: Timeline-Based Automation
+- [ ] Keyframe system (CSS-style)
+- [ ] Easing function support (linear, ease-in, ease-out, etc.)
+- [ ] Real-time automation execution
+- [ ] Loop and iteration control
+- [ ] Patch-to-automation conversion
+- [ ] Automation-to-patch conversion
+- [ ] Multi-parameter simultaneous animation
+- [ ] Precise timing control
+
+### Phase 6: Advanced Features
 - [ ] Tags and snapshots
 - [ ] Annotations
 - [ ] Template system
